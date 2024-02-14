@@ -18,20 +18,18 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install Commitizen
-        run: pip install commitizen toml
-
-      - name: Bump version and tag
-        id: cz
-        run: |
-          cz bump --yes --changelog
-          VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "::set-output name=version::$VERSION"
-          git push --follow-tags
+      - name: Create bump and changelog
+        uses: commitizen-tools/commitizen-action@master
+        with:
+          github_token: ${{ secrets.GH_PAT }}
+          changelog_increment_filename: body.md
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: "body.md"
+          tag_name: ${{ env.REVISION }}
         env:
-          CZ_GIT_USER: "github-actions[bot]"
-          CZ_GIT_EMAIL: "github-actions[bot]@users.noreply.github.com"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
       - name: Build Docker image
@@ -39,13 +37,13 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ghcr.io/${{ github.repository }}/org_id_backend:${{ env.VERSION }}
+          tags: ghcr.io/${{ github.repository }}/org_id_backend:${{ env.REVISION }}
           load: true # Load image to Docker environment to allow scanning before pushing
 
       - name: Scan the Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'ghcr.io/${{ github.repository }}/org_id_backend:${{ env.VERSION }}'
+          image-ref: 'ghcr.io/${{ github.repository }}/org_id_backend:${{ env.REVISION }}'
           format: 'table'
           exit-code: '1' # Causes the workflow to fail if vulnerabilities are found
 
@@ -55,14 +53,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}/org_id_backend:${{ env.VERSION }}
+          tags: ghcr.io/${{ github.repository }}/org_id_backend:${{ env.REVISION }}
         env:
           DOCKER_PASSWORD: ${{ secrets.GH_PAT }}
           DOCKER_USERNAME: ${{ github.actor }}
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
