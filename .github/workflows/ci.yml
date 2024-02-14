@@ -19,13 +19,13 @@ jobs:
           python-version: '3.x'
 
       - name: Install Commitizen
-        run: pip install commitizen
+        run: pip install commitizen toml
 
       - name: Bump version and tag
         id: cz
         run: |
           cz bump --yes --changelog
-          VERSION=$(git describe --tags --abbrev=0)
+          VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "::set-output name=version::$VERSION"
           git push --follow-tags
