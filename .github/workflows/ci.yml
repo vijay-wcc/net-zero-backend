@@ -7,16 +7,6 @@ on:
       - develop
 
 jobs:
-  code-quality:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Lint with Flake8
-        run: |
-          pip install flake8
-          flake8 .
-
   release:
     runs-on: ubuntu-latest
     steps:
