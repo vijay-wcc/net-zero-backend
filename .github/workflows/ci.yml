@@ -1,0 +1,74 @@
+name: Release Workflow
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  code-quality:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Lint with Flake8
+        run: |
+          pip install flake8
+          flake8 .
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install Commitizen
+        run: pip install commitizen
+
+      - name: Bump version and tag
+        id: cz
+        run: |
+          VERSION=$(cz bump --changelog --dry-run | grep 'tag to:' | sed 's/.*tag to: //')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "::set-output name=version::$VERSION"
+          cz bump --changelog
+          git push --follow-tags
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ghcr.io/${{ github.repository }}/org_id_backend:${{ env.VERSION }}
+          load: true # Load image to Docker environment to allow scanning before pushing
+
+      - name: Scan the Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'ghcr.io/${{ github.repository }}/org_id_backend:${{ env.VERSION }}'
+          format: 'table'
+          exit-code: '1' # Causes the workflow to fail if vulnerabilities are found
+
+      - name: Push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/org_id_backend:${{ env.VERSION }}
+        env:
+          DOCKER_PASSWORD: ${{ secrets.GH_PAT }}
+          DOCKER_USERNAME: ${{ github.actor }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,6 @@
+[flake8]
+exclude =
+    alembic
+    __pycache__
+    .venv
+    .env

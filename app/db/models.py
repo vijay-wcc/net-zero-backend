@@ -15,7 +15,8 @@ def format_org_id(_, connection, target):
 class Organization(Base):
     __tablename__ = "organizations"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    id = Column(UUID(as_uuid=True), primary_key=True,
+                index=True, default=uuid.uuid4)
 
     global_id_seq = Sequence('global_id_seq')
 
@@ -31,12 +32,19 @@ class Organization(Base):
     name = Column(String, index=True)
     uprn = Column(BigInteger, index=True, )
 
-    org_class = Column(Enum(OrganizationClass), default=OrganizationClass.O, nullable=False)
+    org_class = Column(Enum(OrganizationClass),
+                       default=OrganizationClass.ORGANIZATION_CLASS_O,
+                       nullable=False)
 
-    application_status = Column(Enum(ApplicationStatus), default=ApplicationStatus.CREATED, nullable=False)
+    application_status = Column(Enum(ApplicationStatus),
+                                default=ApplicationStatus.CREATED,
+                                nullable=False)
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+    created_at = Column(DateTime(timezone=True),
+                        server_default=func.now())
+    updated_at = Column(DateTime(timezone=True),
+                        onupdate=func.now(),
+                        server_default=func.now())
 
 
 event.listen(Organization, 'before_insert', format_org_id)
