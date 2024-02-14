@@ -9,7 +9,7 @@ from app.enums.ApplicationStatus import ApplicationStatus
 class OrganizationBase(BaseModel):
     name: str
     uprn: int
-    org_class: OrganizationClass = OrganizationClass.O
+    org_class: OrganizationClass = OrganizationClass.ORGANIZATION_CLASS_O
 
 
 class OrganizationCreate(OrganizationBase):
